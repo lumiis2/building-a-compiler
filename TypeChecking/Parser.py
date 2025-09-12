@@ -1,7 +1,7 @@
 import sys
 
 from Expression import *
-from Lexer import Token, TokenType, Lexer
+from Lexer import Token, TokenType
 
 """
 This file implements the parser of arithmetic expressions.
@@ -11,15 +11,16 @@ References:
 """
 
 class Parser:
-
-           
     def __init__(self, tokens):
-        self.tokens = tokens  # generator
+        """
+        Initializes the parser. The parser keeps track of the list of tokens
+        and the current token. For instance:
+        """
+        self.tokens = iter(tokens)  # iterador
         self.current_token = next(self.tokens, Token("", TokenType.EOF))
 
     def advance(self):
         self.current_token = next(self.tokens, Token("", TokenType.EOF))
-
 
     def parse(self):
         """
@@ -28,24 +29,28 @@ class Parser:
         Examples:
         >>> parser = Parser([Token('123', TokenType.NUM)])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         123
 
         >>> parser = Parser([Token('True', TokenType.TRU)])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         True
 
         >>> parser = Parser([Token('False', TokenType.FLS)])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         False
 
         >>> tk0 = Token('~', TokenType.NEG)
         >>> tk1 = Token('123', TokenType.NUM)
         >>> parser = Parser([tk0, tk1])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         -123
 
         >>> tk0 = Token('3', TokenType.NUM)
@@ -53,7 +58,8 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         12
 
         >>> tk0 = Token('3', TokenType.NUM)
@@ -62,7 +68,8 @@ class Parser:
         >>> tk3 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2, tk3])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         -12
 
         >>> tk0 = Token('30', TokenType.NUM)
@@ -70,7 +77,8 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         7
 
         >>> tk0 = Token('3', TokenType.NUM)
@@ -78,7 +86,8 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         7
 
         >>> tk0 = Token('30', TokenType.NUM)
@@ -86,7 +95,8 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         26
 
         >>> tk0 = Token('2', TokenType.NUM)
@@ -98,7 +108,8 @@ class Parser:
         >>> tk6 = Token(')', TokenType.RPR)
         >>> parser = Parser([tk0, tk1, tk2, tk3, tk4, tk5, tk6])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         14
 
         >>> tk0 = Token('4', TokenType.NUM)
@@ -106,7 +117,8 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         True
 
         >>> tk0 = Token('4', TokenType.NUM)
@@ -114,7 +126,8 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         True
 
         >>> tk0 = Token('4', TokenType.NUM)
@@ -122,17 +135,39 @@ class Parser:
         >>> tk2 = Token('4', TokenType.NUM)
         >>> parser = Parser([tk0, tk1, tk2])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         False
 
         >>> tk0 = Token('not', TokenType.NOT)
-        >>> tk1 = Token('4', TokenType.NUM)
-        >>> tk2 = Token('<', TokenType.LTH)
-        >>> tk3 = Token('4', TokenType.NUM)
-        >>> parser = Parser([tk0, tk1, tk2, tk3])
+        >>> tk1 = Token('(', TokenType.LPR)
+        >>> tk2 = Token('4', TokenType.NUM)
+        >>> tk3 = Token('<', TokenType.LTH)
+        >>> tk4 = Token('4', TokenType.NUM)
+        >>> tk5 = Token(')', TokenType.RPR)
+        >>> parser = Parser([tk0, tk1, tk2, tk3, tk4, tk5])
         >>> exp = parser.parse()
-        >>> exp.eval(None)
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
         True
+
+        >>> tk0 = Token('true', TokenType.TRU)
+        >>> tk1 = Token('or', TokenType.ORX)
+        >>> tk2 = Token('false', TokenType.FLS)
+        >>> parser = Parser([tk0, tk1, tk2])
+        >>> exp = parser.parse()
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
+        True
+
+        >>> tk0 = Token('true', TokenType.TRU)
+        >>> tk1 = Token('and', TokenType.AND)
+        >>> tk2 = Token('false', TokenType.FLS)
+        >>> parser = Parser([tk0, tk1, tk2])
+        >>> exp = parser.parse()
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
+        False
 
         >>> tk0 = Token('let', TokenType.LET)
         >>> tk1 = Token('v', TokenType.VAR)
@@ -143,7 +178,8 @@ class Parser:
         >>> tk6 = Token('end', TokenType.END)
         >>> parser = Parser([tk0, tk1, tk2, tk3, tk4, tk5, tk6])
         >>> exp = parser.parse()
-        >>> exp.eval({})
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, {})
         42
 
         >>> tk0 = Token('let', TokenType.LET)
@@ -157,34 +193,98 @@ class Parser:
         >>> tk8 = Token('end', TokenType.END)
         >>> parser = Parser([tk0, tk1, tk2, tk3, tk4, tk5, tk6, tk7, tk8])
         >>> exp = parser.parse()
-        >>> exp.eval({})
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, {})
         42
+
+        >>> tk0 = Token('if', TokenType.IFX)
+        >>> tk1 = Token('2', TokenType.NUM)
+        >>> tk2 = Token('<', TokenType.LTH)
+        >>> tk3 = Token('3', TokenType.NUM)
+        >>> tk4 = Token('then', TokenType.THN)
+        >>> tk5 = Token('1', TokenType.NUM)
+        >>> tk6 = Token('else', TokenType.ELS)
+        >>> tk7 = Token('2', TokenType.NUM)
+        >>> parser = Parser([tk0, tk1, tk2, tk3, tk4, tk5, tk6, tk7])
+        >>> exp = parser.parse()
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
+        1
+
+        >>> tk0 = Token('if', TokenType.IFX)
+        >>> tk1 = Token('false', TokenType.FLS)
+        >>> tk2 = Token('then', TokenType.THN)
+        >>> tk3 = Token('1', TokenType.NUM)
+        >>> tk4 = Token('else', TokenType.ELS)
+        >>> tk5 = Token('2', TokenType.NUM)
+        >>> parser = Parser([tk0, tk1, tk2, tk3, tk4, tk5])
+        >>> exp = parser.parse()
+        >>> ev = EvalVisitor()
+        >>> exp.accept(ev, None)
+        2
         """
 
-        expr = self.parse_comparison()
+        expr = self.parse_if()  # <-- Use parse_if aqui!
         if self.current_token.kind != TokenType.EOF:
-            raise SyntaxError(f"Unexpected token {self.current_token.text}")
+            sys.exit("Parse error")
         return expr
         
+    # if_expr := 'if' expr 'then' expr 'else' expr | or_expr
+    def parse_if(self):
+        if self.current_token.kind == TokenType.IFX:
+            self.advance()
+            cond = self.parse_if()
+            if self.current_token.kind != TokenType.THN:
+                sys.exit("Parse error")
+            self.advance()
+            then_expr = self.parse_if()
+            if self.current_token.kind != TokenType.ELS:
+                sys.exit("Parse error")
+            self.advance()
+            else_expr = self.parse_if()
+            return IfThenElse(cond, then_expr, else_expr)
+        else:
+            return self.parse_or()
+        # or_expr := and_expr ('or' and_expr)*
 
-    # comparison := addition comparison_tail
+    def parse_or(self):
+        left = self.parse_and()
+        while self.current_token.kind == TokenType.ORX:
+            self.advance()
+            right = self.parse_and()
+            left = Or(left, right)
+        return left
+    
+    # and_expr := eql_expr ('and' eql_expr)*
+    def parse_and(self):
+        left = self.parse_eql()
+        while self.current_token.kind == TokenType.AND:
+            self.advance()
+            right = self.parse_eql()
+            left = And(left, right)
+        return left
+
+
+    def parse_eql(self):
+        left = self.parse_comparison()
+        while self.current_token.kind == TokenType.EQL:
+            self.advance()
+            right = self.parse_comparison()
+            left = Eql(left, right)
+        return left
+
+    # comparison := addition (('<=' | '<') addition)*
     def parse_comparison(self):
         left = self.parse_addition()
-        return self.parse_comparison_tail(left)
-
-    def parse_comparison_tail(self, left):
-        if self.current_token.kind in [TokenType.LEQ, TokenType.LTH, TokenType.EQL]:
+        while self.current_token.kind in [TokenType.LEQ, TokenType.LTH]:
             op = self.current_token
             self.advance()
             right = self.parse_addition()
             if op.kind == TokenType.LEQ:
                 left = Leq(left, right)
-            elif op.kind == TokenType.LTH:
+            else:
                 left = Lth(left, right)
-            else: # TokenType.EQL
-                left = Eql(left, right)
-            return self.parse_comparison_tail(left)
-        return left  
+        return left 
 
     # addition := multiplication addition_tail
     def parse_addition(self):
@@ -248,9 +348,9 @@ class Parser:
             return fls
         elif self.current_token.kind == TokenType.LPR:
             self.advance()
-            expr = self.parse_comparison()
+            expr = self.parse_if()
             if self.current_token.kind != TokenType.RPR:
-                raise SyntaxError("Expected ')'")
+                sys.exit("Parse error")
             self.advance()
             return expr
         elif self.current_token.kind == TokenType.LET:
@@ -260,31 +360,31 @@ class Parser:
             self.advance()
             return var
         else:
-            raise SyntaxError(f"Unexpected token {self.current_token.text}")
+            sys.exit("Parse error")
         
     def parse_let(self):
         # 'let' VAR '<-' expr 'in' expr 'end'
         self.advance()  # consume 'let'
 
         if self.current_token.kind != TokenType.VAR:
-            raise SyntaxError("Expected variable after 'let'")
+            sys.exit("Parse error")
         var_name = self.current_token.text
         self.advance()
 
         if self.current_token.kind != TokenType.ASN:
-            raise SyntaxError("Expected '<-' in let binding")
+            sys.exit("Parse error")
         self.advance()
 
-        exp_def = self.parse_comparison()
+        exp_def = self.parse_if()
 
         if self.current_token.kind != TokenType.INX:
-            raise SyntaxError("Expected 'in' in let binding")
+            sys.exit("Parse error")
         self.advance()
 
-        exp_body = self.parse_comparison()
+        exp_body = self.parse_if()
 
         if self.current_token.kind != TokenType.END:
-            raise SyntaxError("Expected 'end' to close let expression")
+            sys.exit("Parse error")
         self.advance()
 
         return Let(var_name, exp_def, exp_body)

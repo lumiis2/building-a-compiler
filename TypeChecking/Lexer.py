@@ -1,7 +1,6 @@
 import sys
 import enum
 
-
 class Token:
     """
     This class contains the definition of Tokens. A token has two fields: its
@@ -14,7 +13,6 @@ class Token:
         self.text = tokenText
         # The TokenType that this token is classified as.
         self.kind = tokenKind
-
 
 class TokenType(enum.Enum):
     """
@@ -32,22 +30,25 @@ class TokenType(enum.Enum):
     LET = 8   # The 'let' of the let expression
     INX = 9   # The 'in' of the let expression
     END = 10  # The 'end' of the let expression
-    EQL = 201
-    ADD = 202
-    SUB = 203
-    MUL = 204
-    DIV = 205
-    LEQ = 206
-    LTH = 207
-    NEG = 208
-    NOT = 209
-    LPR = 210
-    RPR = 211
+    EQL = 201 # x = y
+    ADD = 202 # x + y
+    SUB = 203 # x - y
+    MUL = 204 # x * y
+    DIV = 205 # x / y
+    LEQ = 206 # x <= y
+    LTH = 207 # x < y
+    NEG = 208 # ~x
+    NOT = 209 # not x
+    LPR = 210 # (
+    RPR = 211 # )
     ASN = 212 # The assignment '<-' operator
-
+    ORX = 213 # x or y
+    AND = 214 # x and y
+    IFX = 215 # The 'if' of a conditional expression
+    THN = 216 # The 'then' of a conditional expression
+    ELS = 217 # The 'else' of a conditional expression
 
 class Lexer:
-    
     def __init__(self, source):
         """
         The constructor of the lexer. It receives the string that shall be
@@ -56,7 +57,7 @@ class Lexer:
         self.input_str = source
         self.pos = 0
         self.length = len(source)
-    
+
     def next_valid_token(self):
         token = self.getToken()
         if token.kind == TokenType.WSP or token.kind == TokenType.NLN:
@@ -66,11 +67,18 @@ class Lexer:
     def tokens(self):
         """
         This method is a token generator: it converts the string encapsulated
-        into this object into a sequence of Tokens. Examples:
+        into this object into a sequence of Tokens. Notice that this method
+        filters out three kinds of tokens: white-spaces, comments and new lines.
+
+        Examples:
 
         >>> l = Lexer("1 + 3")
         >>> [tk.kind for tk in l.tokens()]
         [<TokenType.NUM: 3>, <TokenType.ADD: 202>, <TokenType.NUM: 3>]
+
+        >>> l = Lexer('1 * 2\\n')
+        >>> [tk.kind for tk in l.tokens()]
+        [<TokenType.NUM: 3>, <TokenType.MUL: 204>, <TokenType.NUM: 3>]
 
         >>> l = Lexer('1 * 2 -- 3\\n')
         >>> [tk.kind for tk in l.tokens()]
@@ -86,7 +94,7 @@ class Lexer:
         """
         token = self.getToken()
         while token.kind != TokenType.EOF:
-            if token.kind not in (TokenType.WSP, TokenType.NLN, TokenType.COM): # nesse exemplo ele esta descartando comentarios e outros tipos de numero tipo heaxdeciaml e etc
+            if token.kind not in (TokenType.WSP, TokenType.COM, TokenType.NLN):
                 yield token
             token = self.getToken()
 
@@ -96,97 +104,86 @@ class Lexer:
         """
         if self.pos >= self.length:
             return Token("", TokenType.EOF)
-            
+
         curr_char = self.input_str[self.pos]
 
+        # Numbers (integers only)
         if curr_char.isdigit():
             number_text = curr_char
             self.pos += 1
-            if number_text == "0" and self.pos < self.length:
-                next_char = self.input_str[self.pos]
-                if next_char in "bB":  # BIN
-                    number_text += next_char
-                    self.pos += 1
-                    while self.pos < self.length and self.input_str[self.pos] in "01":
-                        number_text += self.input_str[self.pos]
-                        self.pos += 1
-                    return Token(number_text, TokenType.BIN)
-                elif next_char in "xX":  # HEX
-                    number_text += next_char
-                    self.pos += 1
-                    while self.pos < self.length and self.input_str[self.pos].lower() in "0123456789abcdef":
-                        number_text += self.input_str[self.pos]
-                        self.pos += 1
-                    return Token(number_text, TokenType.HEX)
             while self.pos < self.length and self.input_str[self.pos].isdigit():
                 number_text += self.input_str[self.pos]
                 self.pos += 1
-            if number_text.startswith("0") and len(number_text) > 1:
-                return Token(number_text, TokenType.OCT)
-            else:
-                return Token(number_text, TokenType.NUM)
-            
+            return Token(number_text, TokenType.NUM)
+
+        # Comments: -- ... \n
         if curr_char == "-" and self.pos + 1 < self.length and self.input_str[self.pos + 1] == "-":
             comment_text = ""
-            self.pos += 2  
+            self.pos += 2
             while self.pos < self.length and self.input_str[self.pos] != "\n":
                 comment_text += self.input_str[self.pos]
                 self.pos += 1
             return Token(comment_text, TokenType.COM)
-        
+
+        # Comments: (* ... *)
         if curr_char == "(" and self.pos + 1 < self.length and self.input_str[self.pos + 1] == "*":
             comment_text = ""
-            self.pos += 2 
+            self.pos += 2
             while self.pos < self.length:
                 if self.input_str[self.pos] == "*" and self.pos + 1 < self.length and self.input_str[self.pos + 1] == ")":
-                    self.pos += 2  
+                    self.pos += 2
                     break
                 comment_text += self.input_str[self.pos]
                 self.pos += 1
             return Token(comment_text, TokenType.COM)
-            
-        if curr_char.isalpha():
-            ident = curr_char
-            self.pos += 1
-            while self.pos < self.length and (self.input_str[self.pos].isalnum()):
-                ident += self.input_str[self.pos]
-                self.pos += 1
 
-            # Palavras-chave
-            if ident == "let":
-                return Token(ident, TokenType.LET)
-            elif ident == "in":
-                return Token(ident, TokenType.INX)
-            elif ident == "end":
-                return Token(ident, TokenType.END)
-            elif ident == "true":
-                return Token(ident, TokenType.TRU)
-            elif ident == "false":
-                return Token(ident, TokenType.FLS)
-            elif ident == "not":
-                return Token(ident, TokenType.NOT)
-            
-            # Caso contrário, é variável
-            return Token(ident, TokenType.VAR)
-                            
-                    
-        if curr_char.isspace():
-            self.pos += 1
-            if curr_char == "\n":
-                return Token(curr_char, TokenType.NLN)
+        # Identifiers and keywords
+        if curr_char.isalpha():
+            start = self.pos
+            while self.pos < self.length and (self.input_str[self.pos].isalnum() or self.input_str[self.pos] == '_'):
+                self.pos += 1
+            word = self.input_str[start:self.pos]
+            if word == "let":
+                return Token(word, TokenType.LET)
+            elif word == "in":
+                return Token(word, TokenType.INX)
+            elif word == "end":
+                return Token(word, TokenType.END)
+            elif word == "true":
+                return Token(word, TokenType.TRU)
+            elif word == "false":
+                return Token(word, TokenType.FLS)
+            elif word == "not":
+                return Token(word, TokenType.NOT)
+            elif word == "or":
+                return Token(word, TokenType.ORX)
+            elif word == "and":
+                return Token(word, TokenType.AND)
+            elif word == "if":
+                return Token(word, TokenType.IFX)
+            elif word == "then":
+                return Token(word, TokenType.THN)
+            elif word == "else":
+                return Token(word, TokenType.ELS)
             else:
-                return Token(curr_char, TokenType.WSP)
-        
-        if curr_char == "<" and self.pos + 1 < self.length and self.input_str[self.pos + 1] == "=":
-            token_text = self.input_str[self.pos:self.pos+2]
+                return Token(word, TokenType.VAR)
+
+        # Assignment <-
+        if self.input_str[self.pos:self.pos+2] == "<-":
             self.pos += 2
-            return Token(token_text, TokenType.LEQ)
-        
-        if curr_char == "<" and self.pos + 1 < self.length and self.input_str[self.pos + 1] == "-":
-            token_text = self.input_str[self.pos:self.pos+2]
+            return Token("<-", TokenType.ASN)
+
+        # Less than or equal <=
+        if self.input_str[self.pos:self.pos+2] == "<=":
             self.pos += 2
-            return Token(token_text, TokenType.ASN)
-        
+            return Token("<=", TokenType.LEQ)
+
+        # Less than <
+        if curr_char == "<":
+            self.pos += 1
+            return Token(curr_char, TokenType.LTH)
+
+        # Operators and punctuation
         if curr_char == "=":
             self.pos += 1
             return Token(curr_char, TokenType.EQL)
@@ -202,12 +199,6 @@ class Lexer:
         if curr_char == "/":
             self.pos += 1
             return Token(curr_char, TokenType.DIV)
-        if curr_char == "<=":
-            self.pos += 1
-            return Token(curr_char, TokenType.LEQ)
-        if curr_char == "<":
-            self.pos += 1
-            return Token(curr_char, TokenType.LTH)
         if curr_char == "~":
             self.pos += 1
             return Token(curr_char, TokenType.NEG)
@@ -217,7 +208,14 @@ class Lexer:
         if curr_char == ")":
             self.pos += 1
             return Token(curr_char, TokenType.RPR)
-            
-            
-        token = None
-        return token
+
+        # Whitespace and newlines
+        if curr_char.isspace():
+            self.pos += 1
+            if curr_char == "\n":
+                return Token(curr_char, TokenType.NLN)
+            else:
+                return Token(curr_char, TokenType.WSP)
+
+        # If nothing matches, return EOF
+        return Token("", TokenType.EOF)
