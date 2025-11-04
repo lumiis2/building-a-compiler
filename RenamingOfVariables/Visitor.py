@@ -559,58 +559,6 @@ class GenVisitor(Visitor):
         val_var = exp.exp_def.accept(self, prog)
         prog.eval()
         val = prog.get_val(val_var)
-        print(f"[DEBUG] GenVisitor.visit_let: Setting '{exp.identifier}' = {val}")
         prog.set_val(exp.identifier, val)
-        print("[DEBUG] GenVisitor.visit_let: Program env after set:")
-        prog.print_env()
         return exp.exp_body.accept(self, prog)
 
-
-class EvalVisitor(Visitor):
-    def visit_num(self, exp, env):
-        return exp.num
-
-    def visit_bln(self, exp, env):
-        return exp.bln
-
-    def visit_var(self, exp, env):
-            if env and exp.identifier in env:
-                return env[exp.identifier]
-            raise Exception("Def error")
-
-    def visit_add(self, exp, env):
-        return exp.left.accept(self, env) + exp.right.accept(self, env)
-
-    def visit_sub(self, exp, env):
-        return exp.left.accept(self, env) - exp.right.accept(self, env)
-
-    def visit_mul(self, exp, env):
-        return exp.left.accept(self, env) * exp.right.accept(self, env)
-
-    def visit_div(self, exp, env):
-        return exp.left.accept(self, env) // exp.right.accept(self, env)
-
-    def visit_eql(self, exp, env):
-        return exp.left.accept(self, env) == exp.right.accept(self, env)
-
-    def visit_leq(self, exp, env):
-        return exp.left.accept(self, env) <= exp.right.accept(self, env)
-
-    def visit_lth(self, exp, env):
-        return exp.left.accept(self, env) < exp.right.accept(self, env)
-
-    def visit_neg(self, exp, env):
-        return -exp.exp.accept(self, env)
-
-    def visit_not(self, exp, env):
-        return not exp.exp.accept(self, env)
-
-    def visit_let(self, exp, env):
-        if not hasattr(self, '_renamed'):
-            renamer = RenameVisitor()
-            exp.accept(renamer, {})
-            self._renamed = True
-        new_env = env.copy() if env else {}
-        val = exp.exp_def.accept(self, env)
-        new_env[exp.identifier] = val
-        return exp.exp_body.accept(self, new_env)

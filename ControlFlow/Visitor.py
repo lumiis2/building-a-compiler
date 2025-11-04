@@ -88,11 +88,9 @@ class GenVisitor(Visitor):
         self.next_var_counter = 0
 
     def next_var_name(self):
-        """
-        You can use this method to get fresh variable names.
-        """
         self.next_var_counter += 1
         return f"v{self.next_var_counter}"
+
 
     def visit_var(self, exp, prog):
         """
